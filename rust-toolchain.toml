@@ -1,5 +1,5 @@
 [toolchain]
 channel = "nightly-2024-01-01"
-componentes = ["rustfmt", "rust-src", "rust-analyzer"]
+components = ["rustfmt", "rust-src", "rust-analyzer"]
 targets = ["x86_64-unknown-linux-gnu"]
 profile = "default"
