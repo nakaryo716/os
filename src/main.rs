@@ -6,6 +6,7 @@ use core::{
     mem::{self, offset_of},
     panic::PanicInfo,
     ptr::{null_mut, slice_from_raw_parts_mut},
+    arch::asm,
 };
 
 type EfiVoid = u8;
@@ -100,6 +101,10 @@ fn locate_graphic_protocol<'a>(
     Ok(unsafe { &*graphic_output_protocol })
 }
 
+pub fn halt() {
+    unsafe { asm!("hlt") }
+}
+
 #[no_mangle]
 fn efi_main(_image_handle: EfiHandle, efi_system_table: &EfiSystemTable) {
     let efi_graphics_output_protocol = locate_graphic_protocol(efi_system_table).unwrap();
@@ -118,7 +123,9 @@ fn efi_main(_image_handle: EfiHandle, efi_system_table: &EfiSystemTable) {
     }
 
     // println!("Hello, world!");
-    loop {}
+    loop {
+        halt()
+    }
 }
 
 #[panic_handler]
