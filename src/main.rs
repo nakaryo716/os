@@ -93,7 +93,7 @@ fn locate_graphic_protocol<'a>(
         &mut graphic_output_protocol as *mut *mut EfiGraphicsOutputProtocol as *mut *mut EfiVoid,
     );
 
-    if !matches!(status, EfiStatus::Success) {
+    if status != EfiStatus::Success {
         return Err("failed to locate graphic output protocol");
     }
 
