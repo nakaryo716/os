@@ -3,10 +3,11 @@
 #![feature(offset_of)]
 
 use core::{
+    arch::asm,
+    cmp::min,
     mem::{self, offset_of},
     panic::PanicInfo,
     ptr::{null_mut, slice_from_raw_parts_mut},
-    arch::asm,
 };
 
 type EfiVoid = u8;
@@ -131,4 +132,38 @@ fn efi_main(_image_handle: EfiHandle, efi_system_table: &EfiSystemTable) {
 #[panic_handler]
 fn panic(_info: &PanicInfo) -> ! {
     loop {}
+}
+
+trait Bitmap {
+    fn bytes_per_pixel(&self) -> i64;
+    fn pixels_per_line(&self) -> i64;
+    fn width(&self) -> i64;
+    fn height(&self) -> i64;
+    fn buf_mut(&mut self) -> *mut u8;
+
+    /// SAFETY:
+    ///
+    /// Returned pointer is valid as long ass the given coordinates are valid
+    /// which means that passing is_in*_range tests.
+    unsafe fn unchecked_pixel_at_mut(&mut self, x: i64, y: i64) -> *mut u32 {
+        self.buf_mut()
+            .add(((y * self.pixels_per_line() + x) * self.bytes_per_pixel()) as usize)
+            .cast()
+    }
+
+    fn pixel_at_mut(&mut self, x: i64, y: i64) -> Option<&mut u32> {
+        if self.is_in_x_range(x) && self.is_in_y_range(y) {
+            Some(unsafe { &mut *self.unchecked_pixel_at_mut(x, y) })
+        } else {
+            None
+        }
+    }
+
+    fn is_in_x_range(&self, px: i64) -> bool {
+        px >= 0 && px < min(self.width(), self.pixels_per_line())
+    }
+
+    fn is_in_y_range(&self, py: i64) -> bool {
+        py >= 0 && py < self.height()
+    }
 }
