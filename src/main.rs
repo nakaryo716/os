@@ -7,7 +7,7 @@ use core::{
     cmp::min,
     mem::{self, offset_of},
     panic::PanicInfo,
-    ptr::{null_mut, slice_from_raw_parts_mut},
+    ptr::null_mut,
 };
 
 type EfiVoid = u8;
@@ -108,18 +108,21 @@ pub fn halt() {
 
 #[no_mangle]
 fn efi_main(_image_handle: EfiHandle, efi_system_table: &EfiSystemTable) {
-    let efi_graphics_output_protocol = locate_graphic_protocol(efi_system_table).unwrap();
-    let vram_addr = efi_graphics_output_protocol.mode.frame_buffer_base;
-    let vram_byte_size = efi_graphics_output_protocol.mode.frame_buffer_size;
-    let vram = slice_from_raw_parts_mut(
-        vram_addr as *mut u32,
-        vram_byte_size / mem::size_of::<u32>(),
-    );
+    let mut vram = init_vram(efi_system_table).expect("failed to init vram");
 
-    // for e in &(*vram) {
-    unsafe {
-        for e in &mut *vram {
-            *e = 0xffffff;
+    for y in 0..vram.height() {
+        for x in 0..vram.width() {
+            if let Some(pixel) = vram.pixel_at_mut(x, y) {
+                *pixel = 0x00FF00;
+            }
+        }
+    }
+
+    for y in 0..vram.height() / 2 {
+        for x in 0..vram.width() / 2 {
+            if let Some(pixel) = vram.pixel_at_mut(x, y) {
+                *pixel = 0xFF0000;
+            }
         }
     }
 
