@@ -87,7 +87,6 @@ pub struct EfiGraphicsOutputProtocol<'a> {
 fn locate_graphic_protocol<'a>(
     efi_system_table: &EfiSystemTable,
 ) -> Result<&'a EfiGraphicsOutputProtocol> {
-    // NEXT:
     let mut graphic_output_protocol = null_mut::<EfiGraphicsOutputProtocol>();
     let status = (efi_system_table.boot_services.locate_protocol)(
         &EFI_GRAPHICS_OUTPUT_PROTOCOL_GUID,
@@ -110,20 +109,16 @@ pub fn halt() {
 fn efi_main(_image_handle: EfiHandle, efi_system_table: &EfiSystemTable) {
     let mut vram = init_vram(efi_system_table).expect("failed to init vram");
 
-    for y in 0..vram.height() {
-        for x in 0..vram.width() {
-            if let Some(pixel) = vram.pixel_at_mut(x, y) {
-                *pixel = 0x00FF00;
-            }
-        }
-    }
+    let vw = vram.width;
+    let vh = vram.height;
 
-    for y in 0..vram.height() / 2 {
-        for x in 0..vram.width() / 2 {
-            if let Some(pixel) = vram.pixel_at_mut(x, y) {
-                *pixel = 0xFF0000;
-            }
-        }
+    fill_rect(&mut vram, 0x000000, 0, 0, vw, vh).expect("fill_rect failed");
+    fill_rect(&mut vram, 0xff0000, 32, 32, 32, 32).expect("fill_rect failed");
+    fill_rect(&mut vram, 0x00ff00, 64, 64, 64, 64).expect("fill_rect failed");
+    fill_rect(&mut vram, 0x0000ff, 128, 128, 128, 128).expect("fill_rect failed");
+
+    for i in 0..256 {
+        draw_point(&mut vram, 0x010101 * i as u32, i, i).expect("draw_point failed");
     }
 
     // println!("Hello, world!");
@@ -208,4 +203,34 @@ fn init_vram(efi_system_table: &EfiSystemTable) -> Result<VramBufferInfo> {
         height: gp.mode.info.vertical_resolution as i64,
         pixel_per_line: gp.mode.info.pixels_per_scan_line as i64,
     })
+}
+
+/// # Safety
+///
+/// (x, y) must valid point in the buf.
+unsafe fn unchecked_draw_point<T: Bitmap>(buf: &mut T, color: u32, x: i64, y: i64) {
+    *buf.unchecked_pixel_at_mut(x, y) = color;
+}
+
+fn draw_point<T: Bitmap>(buf: &mut T, color: u32, x: i64, y: i64) -> Result<()> {
+    *(buf.pixel_at_mut(x, y).ok_or("Out of range")?) = color;
+    Ok(())
+}
+
+fn fill_rect<T: Bitmap>(buf: &mut T, color: u32, px: i64, py: i64, w: i64, h: i64) -> Result<()> {
+    if !buf.is_in_x_range(px)
+        || !buf.is_in_y_range(py)
+        || !buf.is_in_x_range(px + w - 1)
+        || !buf.is_in_y_range(py + h - 1)
+    {
+        return Err("Out of range");
+    }
+    for y in py..py + h {
+        for x in px..py + w {
+            unsafe {
+                unchecked_draw_point(buf, color, x, y);
+            }
+        }
+    }
+    Ok(())
 }
