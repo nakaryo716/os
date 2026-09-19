@@ -234,3 +234,38 @@ fn fill_rect<T: Bitmap>(buf: &mut T, color: u32, px: i64, py: i64, w: i64, h: i6
     }
     Ok(())
 }
+
+fn calc_slope_point(da: i64, db: i64, ia: i64) -> Option<i64> {
+    if da < db {
+        None
+    } else if da == 0 {
+        Some(0)
+    } else if (0..=da).contains(&ia) {
+        Some((2 * db * ia + da) / da / 2)
+    } else {
+        None
+    }
+}
+
+fn draw_line<T: Bitmap>(buf: &mut T, color: u32, x0: i64, y0: i64, x1: i64, y1: i64) -> Result<()> {
+    if !buf.is_in_x_range(x0)
+        || !buf.is_in_x_range(x1)
+        || !buf.is_in_y_range(y0)
+        || !buf.is_in_y_range(y1)
+    {
+        return Err("Out of range");
+    }
+    // NEXT
+    let dx = (x1 - x0).abs();
+    let sx = (x1 - x0).signum();
+    let dy = (y1 - y0).abs();
+    let sy = (y1 - y0).signum();
+
+    // NEXT
+    if dx >= dy {
+        todo!()
+    } else {
+        todo!()
+    }
+    Ok(())
+}
