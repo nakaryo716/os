@@ -121,6 +121,21 @@ fn efi_main(_image_handle: EfiHandle, efi_system_table: &EfiSystemTable) {
         draw_point(&mut vram, 0x010101 * i as u32, i, i).expect("draw_point failed");
     }
 
+    let grid_size: i64 = 32;
+    let rect_size: i64 = grid_size * 8;
+    for i in (0..=rect_size).step_by(grid_size as usize) {
+        let _ = draw_line(&mut vram, 0xff0000, 0, i, rect_size, i);
+        let _ = draw_line(&mut vram, 0xff0000, i, 0, i, rect_size);
+    }
+    let cx = rect_size / 2;
+    let cy = rect_size / 2;
+    for i in (0..=rect_size).step_by(grid_size as usize) {
+        let _ = draw_line(&mut vram, 0xffff00, cx, cy, 0, i);
+        let _ = draw_line(&mut vram, 0x00ffff, cx, cy, i, 0);
+        let _ = draw_line(&mut vram, 0xff00ff, cx, cy, rect_size, i);
+        let _ = draw_line(&mut vram, 0xffffff, cx, cy, i, rect_size);
+    }
+
     // println!("Hello, world!");
     loop {
         halt()
@@ -255,17 +270,19 @@ fn draw_line<T: Bitmap>(buf: &mut T, color: u32, x0: i64, y0: i64, x1: i64, y1: 
     {
         return Err("Out of range");
     }
-    // NEXT
     let dx = (x1 - x0).abs();
     let sx = (x1 - x0).signum();
     let dy = (y1 - y0).abs();
     let sy = (y1 - y0).signum();
 
-    // NEXT
     if dx >= dy {
-        todo!()
+        for (rx, ry) in (0..dx).flat_map(|rx| calc_slope_point(dx, dy, rx).map(|ry| (rx, ry))) {
+            draw_point(buf, color, x0 + rx * sx, y0 + ry * sy)?;
+        }
     } else {
-        todo!()
+        for (rx, ry) in (0..dy).flat_map(|ry| calc_slope_point(dy, dx, ry).map(|rx| (rx, ry))) {
+            draw_point(buf, color, x0 + rx * sx, y0 + ry * sy)?;
+        }
     }
     Ok(())
 }
