@@ -2,19 +2,17 @@
 #![no_main]
 #![feature(offset_of)]
 
-use core::{arch::asm, fmt::Write, panic::PanicInfo};
+use core::{fmt::Write, panic::PanicInfo};
 
 use wasabi::{
     graphics::{draw_test_pattern, fill_rect, Bitmap},
+    qemu::{exit_qemu, QemuExitCode},
     uefi::{
         exit_from_efi_boot_services, init_vram, EfiHandle, EfiSystemTable, MemoryMapHolder,
         MemoryType, VramTextWriter,
     },
+    x86::halt,
 };
-
-pub fn halt() {
-    unsafe { asm!("hlt") }
-}
 
 #[no_mangle]
 fn efi_main(image_handle: EfiHandle, efi_system_table: &EfiSystemTable) {
@@ -63,5 +61,5 @@ fn efi_main(image_handle: EfiHandle, efi_system_table: &EfiSystemTable) {
 
 #[panic_handler]
 fn panic(_info: &PanicInfo) -> ! {
-    loop {}
+    exit_qemu(QemuExitCode::Fail);
 }

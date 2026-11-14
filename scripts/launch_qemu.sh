@@ -1,15 +1,29 @@
 #!/bin/bash -e
-PROJ_ROOT="$(dirname $(dirname${BASH_SOURCE:-%0}))"
+PROJ_ROOT="$(dirname "$(dirname "${BASH_SOURCE:-$0}")")"
 cd "${PROJ_ROOT}"
 
 PATH_TO_EFI="$1"
 rm -rf mnt
 mkdir -p mnt/EFI/BOOT/
-cp ${PATH_TO_EFI} mnt/EFI/BOOT/BOOTX64.EFI
+cp "${PATH_TO_EFI}" mnt/EFI/BOOT/BOOTX64.EFI
+
+set +e
 qemu-system-x86_64 \
--enable-kvm \
--cpu host \
--m 4G \
--bios third_party/ovmf/RELEASEX64_OVMF.fd \
--drive format=raw,file=fat:rw:mnt \
--device isa-debug-exit,iobase=0xf4,iosize=0x01
+  -enable-kvm \
+  -cpu host \
+  -m 4G \
+  -bios third_party/ovmf/RELEASEX64_OVMF.fd \
+  -drive format=raw,file=fat:rw:mnt \
+  -device isa-debug-exit,iobase=0xf4,iosize=0x01
+RETCODE=$?
+set -e
+
+if [ $RETCODE -eq 0 ]; then
+  exit 0
+elif [ $RETCODE -eq 3 ]; then
+  printf "\nPASS\n"
+  exit 0
+else
+  printf "\nFAIL: QEMU returned %s\n" "$RETCODE"
+  exit 1
+fi
