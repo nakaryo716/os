@@ -7,6 +7,7 @@ use core::{fmt::Write, panic::PanicInfo};
 use wasabi::{
     graphics::{draw_test_pattern, fill_rect, Bitmap},
     qemu::{exit_qemu, QemuExitCode},
+    serial::SerialPort,
     uefi::{
         exit_from_efi_boot_services, init_vram, EfiHandle, EfiSystemTable, MemoryMapHolder,
         MemoryType, VramTextWriter,
@@ -16,6 +17,10 @@ use wasabi::{
 
 #[no_mangle]
 fn efi_main(image_handle: EfiHandle, efi_system_table: &EfiSystemTable) {
+    let mut sp = unsafe { SerialPort::new_for_com1() };
+    sp.init();
+    writeln!(sp, "Hello via serial port").unwrap();
+
     let mut vram = init_vram(efi_system_table).expect("failed to init vram");
 
     let vw = vram.width();
